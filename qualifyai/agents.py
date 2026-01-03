@@ -213,3 +213,75 @@ Provide your evaluation:
                 "reasoning": f"Error during evaluation: {str(e)}",
                 "recommendation": "REJECT"
             }
+
+
+# Stage 2: Win Probability Assessment Agents
+class CompetitionAgent(Agent):
+    """
+    Competition Agent.
+    Evaluates: Competitors in deal, positioning, differentiation.
+    Rule based implementation.
+    """
+
+    def __init__(self):
+        super().__init__("Competition Agent")
+
+    async def evaluate(self, lead_data: dict) -> dict:
+        """Evaluate competitors in deal."""
+
+        score = 70  # Base score
+        reasons = []
+
+        # Check number of competitors
+        competitors = lead_data.get("competitors", [])
+        num_competitors = len(competitors)
+
+        if num_competitors == 0:
+            score += 20
+            reasons.append("No known competitors")
+        elif num_competitors == 1:
+            score += 5
+            reasons.append(f"Single competitor: {competitors[0]}")
+        else:
+            score -= 10
+            reasons.append(f"Multiple competitors ({num_competitors}): {', '.join(competitors)}")
+
+        # Check current solution and satisfaction
+        current_solution = lead_data.get("current_solution", "").lower()
+        satisfaction = lead_data.get("satisfaction_with_current", "").lower()
+
+        if not current_solution or current_solution == "none":
+            score += 15
+            reasons.append("No current solution in place")
+        else:
+            # They have something, check satisfaction factor
+            if satisfaction == "low":
+                score += 10
+                reasons.append(f"Using {lead_data.get('current_solution')} but unhappy. Open to switch")
+            elif satisfaction == "medium":
+                score -= 5
+                reasons.append(f"Using {lead_data.get('current_solution')} with moderate satisfaction")
+            elif satisfaction == "high":
+                score -= 20
+                reasons.append(f"Happy with {lead_data.get('current_solution')}. Hard to displace")
+
+        # Check our competitive advantage
+        our_advantage = lead_data.get("our_advantage", "").lower()
+        if "strong" in our_advantage or "unique" in our_advantage:
+            score += 15
+            reasons.append(f"Strong differentiation: {lead_data.get('our_advantage')}")
+        elif our_advantage:
+            score += 5
+            reasons.append(f"Some differentiation: {lead_data.get('our_advantage')}")
+
+        # Cap score
+        score = max(0, min(score, 100))
+
+        recommendation = "PROCEED" if score >= 70 else "REJECT"
+
+        return {
+            "agent": self.name,
+            "score": score,
+            "reasoning": ". ".join(reasons) if reasons else "Insufficient competitive information",
+            "recommendation": recommendation
+        }
