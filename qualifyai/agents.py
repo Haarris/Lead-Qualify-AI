@@ -357,3 +357,73 @@ End with: CHAMPION_STRENGTH_SCORE: [total]/100"""
                 "reasoning": f"Error during evaluation: {str(e)}",
                 "recommendation": "REJECT"
             }
+
+
+class TechnicalFitAgent(Agent):
+    """
+    Technical Fit Agent.
+    Evaluates: Technical requirements, integration complexity, stack alignment.
+    Rule based implementation.
+    """
+
+    # Our compatible tech stack
+    COMPATIBLE_STACK = ["aws", "kubernetes", "docker", "python", "node.js", "react", "jenkins", "github", "gitlab"]
+
+    def __init__(self):
+        super().__init__("Technical Fit Agent")
+
+    async def evaluate(self, lead_data: dict) -> dict:
+        """Evaluate technical fit and integration complexity."""
+
+        score = 50  # Base score
+        reasons = []
+
+        # Check tech stack alignment
+        their_stack = [tech.lower() for tech in lead_data.get("tech_stack", [])]
+        matches = [tech for tech in their_stack if tech in self.COMPATIBLE_STACK]
+        match_count = len(matches)
+
+        if match_count >= 4:
+            score += 30
+            reasons.append(f"Excellent stack alignment ({match_count} matches): {', '.join(matches)}")
+        elif match_count >= 2:
+            score += 20
+            reasons.append(f"Good stack alignment ({match_count} matches): {', '.join(matches)}")
+        elif match_count >= 1:
+            score += 10
+            reasons.append(f"Some stack alignment ({match_count} match): {', '.join(matches)}")
+        else:
+            reasons.append("No tech stack alignment identified")
+
+        # integration complexity
+        complexity = lead_data.get("integration_complexity", "").lower()
+        if complexity == "low":
+            score += 20
+            reasons.append("Low integration complexity - quick deployment expected")
+        elif complexity == "medium":
+            score += 10
+            reasons.append("Medium integration complexity - standard implementation")
+        elif complexity == "high":
+            score -= 10
+            reasons.append("High integration complexity - significant customization needed")
+
+        # Check for specific requirements
+        requirements = lead_data.get("technical_requirements", "").lower()
+        if "security" in requirements or "compliance" in requirements:
+            score += 10
+            reasons.append("Security/compliance focus aligns with our strengths")
+        if "legacy" in requirements:
+            score -= 10
+            reasons.append("Legacy system integration may be challenging")
+
+        # Cap score
+        score = max(0, min(score, 100))
+
+        recommendation = "PROCEED" if score >= 70 else "REJECT"
+
+        return {
+            "agent": self.name,
+            "score": score,
+            "reasoning": ". ".join(reasons) if reasons else "Insufficient technical information",
+            "recommendation": recommendation
+        }

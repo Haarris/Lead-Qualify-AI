@@ -28,3 +28,6 @@ python test_competition.py
 
 # Testing Stakeholder Agent
 python test_stakeholder.py
+
+# Technical Fit Agent
+python test_technical.py
