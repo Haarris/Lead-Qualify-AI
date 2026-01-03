@@ -427,3 +427,73 @@ class TechnicalFitAgent(Agent):
             "reasoning": ". ".join(reasons) if reasons else "Insufficient technical information",
             "recommendation": recommendation
         }
+
+
+# Stage 3: Strategy & Execution Assessment Agents
+class RiskAgent(Agent):
+    """
+    Risk Agent.
+    Evaluates: Deal risks, red flags, potential blockers.
+    Rule based implementation.
+    """
+
+    def __init__(self):
+        super().__init__("Risk Agent")
+
+    async def evaluate(self, lead_data: dict) -> dict:
+        """Evaluate deal risks and red flags."""
+
+        risk_score = 0  # Lower is better
+        concerns = []
+
+        # Check for budget freeze
+        if lead_data.get("budget_freeze", False):
+            risk_score += 30
+            concerns.append("Budget freeze in effect")
+
+        # Check for recent layoffs
+        if lead_data.get("recent_layoffs", False):
+            risk_score += 25
+            concerns.append("Recent layoffs - organizational instability")
+
+        # Check for competitor relationship
+        if lead_data.get("competitor_relationship", False):
+            risk_score += 20
+            concerns.append("Existing relationship with competitor")
+
+        # Check timeline pressure
+        timeline = lead_data.get("timeline", "").lower()
+        if "urgent" in timeline or "asap" in timeline:
+            risk_score += 15
+            concerns.append("Urgent timeline may lead to rushed decision")
+
+        # Check for no champion
+        if not lead_data.get("has_champion", True):
+            risk_score += 20
+            concerns.append("No internal champion identified")
+
+        # Check deal size risk
+        deal_size = lead_data.get("deal_size", 0)
+        if deal_size > 500000:
+            risk_score += 10
+            concerns.append("Large deal size increases scrutiny")
+
+        # Determine risk level
+        if risk_score <= 20:
+            risk_level = "LOW"
+        elif risk_score <= 50:
+            risk_level = "MEDIUM"
+        else:
+            risk_level = "HIGH"
+
+        # Convert to score (invert - lower risk = higher score)
+        score = max(0, 100 - risk_score)
+
+        return {
+            "agent": self.name,
+            "score": score,
+            "risk_level": risk_level,
+            "concerns": concerns,
+            "reasoning": f"Risk level: {risk_level}. " + (". ".join(concerns) if concerns else "No significant risks identified"),
+            "recommendation": "PROCEED" if risk_level in ["LOW", "MEDIUM"] else "REJECT"
+        }

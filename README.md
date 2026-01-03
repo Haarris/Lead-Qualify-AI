@@ -31,3 +31,7 @@ python test_stakeholder.py
 
 # Technical Fit Agent
 python test_technical.py
+
+## Stage 3 Agents
+# Testing Risk Agent
+python test_risk.py
