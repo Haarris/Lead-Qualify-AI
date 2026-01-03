@@ -9,4 +9,7 @@ python3.10 -m venv venv
 source venv/bin/activate
 
 # Installing requirements:
- pip install -r requirements.txt
+pip install -r requirements.txt
+
+# Testing ICP Agent
+python test_icp.py
