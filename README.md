@@ -13,3 +13,6 @@ pip install -r requirements.txt
 
 # Testing ICP Agent
 python test_icp.py
+
+# Testing Budget Agent 
+python test_budget.py

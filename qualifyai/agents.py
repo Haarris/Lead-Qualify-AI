@@ -88,3 +88,57 @@ Return only valid JSON, no other text."""
             "reasoning": "Could not parse LLM response",
             "recommendation": "REJECT"
         }
+
+
+class BudgetAgent(Agent):
+    """
+    Budget Agent.
+    Evaluates: Budget signals, financial capacity.
+    Rule based implementation.
+    """
+
+    def __init__(self):
+        super().__init__("Budget Agent")
+
+    async def evaluate(self, lead_data: dict) -> dict:
+        """Evaluate budget signals and capacity."""
+
+        score = 50  # Base / threshold score
+        reasons = []
+
+        # Check budget
+        budget = lead_data.get("budget", 0)
+        if budget >= 100000:
+            score += 30
+            reasons.append(f"Strong budget signal: ${budget:,}")
+        elif budget >= 50000:
+            score += 20
+            reasons.append(f"Moderate budget: ${budget:,}")
+        elif budget > 0:
+            score += 10
+            reasons.append(f"Limited budget: ${budget:,}")
+        else:
+            reasons.append("No budget information provided")
+
+        # Check funding stage
+        funding = lead_data.get("funding_stage", "").lower()
+        if funding in ["series c", "series d", "ipo"]:
+            score += 20
+            reasons.append(f"Strong funding stage: {funding}")
+        elif funding in ["series a", "series b"]:
+            score += 10
+            reasons.append(f"Growth stage funding: {funding}")
+        elif funding:
+            reasons.append(f"Early stage: {funding}")
+
+        # Cap score at 100 (safety guard)
+        score = min(score, 100)
+
+        recommendation = "PROCEED" if score >= 70 else "REJECT"
+
+        return {
+            "agent": self.name,
+            "score": score,
+            "reasoning": ". ".join(reasons) if reasons else "Insufficient budget information",
+            "recommendation": recommendation
+        }
