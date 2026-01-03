@@ -38,3 +38,6 @@ python test_risk.py
 
 # Testing Resource Agent
 python test_resource.py
+
+# Testing Strategy Agent
+python test_strategy.py

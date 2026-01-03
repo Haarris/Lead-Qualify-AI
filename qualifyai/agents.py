@@ -563,3 +563,88 @@ class ResourceAgent(Agent):
             "reasoning": ". ".join(reasons) if reasons else "Standard resource allocation",
             "recommendation": recommendation
         }
+
+
+class StrategyAgent(Agent):
+    """
+    Strategy Agent.
+    Evaluates: Closing strategy, action plan, timeline, tactics.
+    Uses LLM (OpenAI API)
+    """
+
+    def __init__(self):
+        super().__init__("Strategy Agent")
+
+    async def evaluate(self, lead_data: dict) -> dict:
+        """Develop closing strategy and action plan."""
+
+        # Get stakeholders list
+        stakeholders = lead_data.get('stakeholders', [])
+        stakeholders_str = "\n".join([f"  - {s}" for s in stakeholders]) if stakeholders else "  - Not provided"
+
+        prompt = f"""Develop a strategic closing playbook for this deal.
+
+DEAL CONTEXT:
+- Company: {lead_data.get('company_name', 'Unknown')}
+- Deal Size: ${lead_data.get('deal_size', 0):,}
+- Timeline: {lead_data.get('timeline', 'Unknown')}
+- Decision Maker: {lead_data.get('decision_maker', 'Unknown')} ({lead_data.get('decision_maker_title', 'Unknown')})
+- Champion: {lead_data.get('champion', 'None')}
+- Blockers: {lead_data.get('blockers', 'None')}
+- Competitors: {lead_data.get('competitors', [])}
+- Key Stakeholders:
+{stakeholders_str}
+
+Generate a playbook in this EXACT format:
+
+EXECUTIVE SUMMARY
+[2-3 sentences describing the opportunity and recommended approach]
+
+PHASE 1: FOUNDATION BUILDING (Weeks 1-2)
+[Describe immediate priorities and champion enablement]
+PRIORITY: [CRITICAL/HIGH/MEDIUM]
+Actions: 1) [specific action], 2) [specific action], 3) [specific action]
+
+PHASE 2: VALUE VALIDATION (Weeks 3-4)
+[Describe pilot/POC approach and success metrics]
+Success metrics: [specific measurable outcomes]
+CONFIDENCE_LEVEL: [High/Medium/Low]
+
+PHASE 3: NEGOTIATION & CLOSE (Weeks 5-6)
+[Describe closing approach and timeline]
+
+STRATEGY_EFFECTIVENESS_SCORE: [0-100]/100
+
+RISKS: [Key risks that could derail the deal]
+
+RECOMMENDED NEXT STEPS: [1] [action with deadline (weeks / months)], [2] [action with deadline], [3] [action with deadline]
+
+SCORING GUIDE:
+- Clear path to decision maker (35 pts): Do we have access?
+- Addressable blockers (35 pts): Can concerns be overcome?
+- Realistic timeline (30 pts): Is the timeline achievable?"""
+
+        try:
+            response = await call_llm(prompt)
+
+            # Extract score from response
+            score = 50
+            score_match = re.search(r'STRATEGY_EFFECTIVENESS_SCORE:\s*(\d+)', response)
+            if score_match:
+                score = min(int(score_match.group(1)), 100)
+
+            recommendation = "PROCEED" if score >= 70 else "REJECT"
+
+            return {
+                "agent": self.name,
+                "score": score,
+                "reasoning": response,
+                "recommendation": recommendation
+            }
+        except Exception as e:
+            return {
+                "agent": self.name,
+                "score": 50,
+                "reasoning": f"Error during evaluation: {str(e)}",
+                "recommendation": "REJECT"
+            }
