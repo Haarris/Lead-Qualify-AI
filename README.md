@@ -25,3 +25,6 @@ python test_market.py
 ## Stage 2 Agents
 # Testing Competition Agent
 python test_competition.py
+
+# Testing Stakeholder Agent
+python test_stakeholder.py

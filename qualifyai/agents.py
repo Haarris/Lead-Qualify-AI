@@ -285,3 +285,75 @@ class CompetitionAgent(Agent):
             "reasoning": ". ".join(reasons) if reasons else "Insufficient competitive information",
             "recommendation": recommendation
         }
+
+
+class StakeholderAgent(Agent):
+    """
+    Stakeholder Agent.
+    Evaluates: Decision-makers, champion strength, organizational dynamics.
+    Uses LLM (OpenAI API).
+    """
+
+    def __init__(self):
+        super().__init__("Stakeholder Agent")
+
+    async def evaluate(self, lead_data: dict) -> dict:
+        """Analyze stakeholder dynamics and champion strength."""
+
+        prompt = f"""Analyze the stakeholder dynamics for this deal. Score each criterion and sum for total.
+
+STAKEHOLDER DATA:
+- Decision Maker: {lead_data.get('decision_maker', 'Unknown')}
+- Decision Maker Title: {lead_data.get('decision_maker_title', 'Unknown')}
+- Champion: {lead_data.get('champion', 'None')}
+- Champion Title: {lead_data.get('champion_title', 'Unknown')}
+- Champion Engagement: {lead_data.get('champion_engagement', 'Unknown')}
+- Known Blockers: {lead_data.get('blockers', 'None')}
+
+SCORING RUBRIC (max 100 points):
+
+1. CHAMPION STRENGTH (0-40 points):
+   - Strong champion with budget authority: 40 pts
+   - Engaged champion without direct authority: 30 pts
+   - Weak or passive champion: 15 pts
+   - No identified champion: 0 pts
+
+2. DECISION MAKER ACCESS (0-40 points):
+   - Direct access to final decision maker: 40 pts
+   - Access through champion: 30 pts
+   - Indirect access only: 15 pts
+   - No access identified: 0 pts
+
+3. BLOCKER RISK (0-20 points):
+   - No known blockers: 20 pts
+   - Minor blockers (can be managed): 10 pts
+   - Significant blockers present: 5 pts
+   - Strong opposition identified: 0 pts
+
+Provide brief analysis for each criterion with points awarded.
+End with: CHAMPION_STRENGTH_SCORE: [total]/100"""
+
+        try:
+            response = await call_llm(prompt)
+
+            # Extract score from response
+            score = 50
+            score_match = re.search(r'CHAMPION_STRENGTH_SCORE:\s*(\d+)', response)
+            if score_match:
+                score = min(int(score_match.group(1)), 100)
+
+            recommendation = "PROCEED" if score >= 70 else "REJECT"
+
+            return {
+                "agent": self.name,
+                "score": score,
+                "reasoning": response,
+                "recommendation": recommendation
+            }
+        except Exception as e:
+            return {
+                "agent": self.name,
+                "score": 50,
+                "reasoning": f"Error during evaluation: {str(e)}",
+                "recommendation": "REJECT"
+            }
