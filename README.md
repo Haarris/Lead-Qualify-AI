@@ -35,3 +35,6 @@ python test_technical.py
 ## Stage 3 Agents
 # Testing Risk Agent
 python test_risk.py
+
+# Testing Resource Agent
+python test_resource.py

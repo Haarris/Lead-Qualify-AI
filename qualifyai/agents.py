@@ -497,3 +497,69 @@ class RiskAgent(Agent):
             "reasoning": f"Risk level: {risk_level}. " + (". ".join(concerns) if concerns else "No significant risks identified"),
             "recommendation": "PROCEED" if risk_level in ["LOW", "MEDIUM"] else "REJECT"
         }
+
+
+class ResourceAgent(Agent):
+    """
+    Resource Agent.
+    Evaluates: Team capacity, implementation effort, support requirements.
+    Rule based implementation.
+    """
+
+    def __init__(self):
+        super().__init__("Resource Agent")
+
+    async def evaluate(self, lead_data: dict) -> dict:
+        """Evaluate resource requirements and team capacity."""
+
+        score = 80  # assuming we have capacity
+        resource_requirements = []
+        reasons = []
+
+        # Check deal size: larger deals need more resources
+        deal_size = lead_data.get("deal_size", 0)
+        if deal_size >= 500000:
+            score -= 15
+            resource_requirements.append("Dedicated solutions architect")
+            reasons.append("Large deal requires dedicated architect")
+        elif deal_size >= 200000:
+            score -= 5
+            resource_requirements.append("Senior solutions engineer")
+            reasons.append("Mid-size deal needs senior SE support")
+
+        # Check implementation complexity
+        complexity = lead_data.get("implementation_complexity", "").lower()
+        if complexity == "high":
+            score -= 20
+            resource_requirements.append("Implementation team lead")
+            resource_requirements.append("Extended onboarding support")
+            reasons.append("High complexity requires dedicated implementation team")
+        elif complexity == "medium":
+            score -= 10
+            resource_requirements.append("Solutions engineer for POC")
+            reasons.append("Standard implementation resources needed")
+        else:
+            reasons.append("Low complexity - standard resources sufficient")
+
+        # Check timeline pressure
+        timeline = lead_data.get("timeline", "").lower()
+        if "urgent" in timeline or "asap" in timeline:
+            score -= 15
+            resource_requirements.append("Fast-track implementation team")
+            reasons.append("Urgent timeline strains resources")
+
+        # Add standard resources
+        resource_requirements.append("Customer success manager for onboarding")
+
+        # Cap score
+        score = max(0, min(score, 100))
+
+        recommendation = "PROCEED" if score >= 70 else "REJECT"
+
+        return {
+            "agent": self.name,
+            "score": score,
+            "resource_requirements": resource_requirements,
+            "reasoning": ". ".join(reasons) if reasons else "Standard resource allocation",
+            "recommendation": recommendation
+        }
