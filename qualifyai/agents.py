@@ -142,3 +142,74 @@ class BudgetAgent(Agent):
             "reasoning": ". ".join(reasons) if reasons else "Insufficient budget information",
             "recommendation": recommendation
         }
+
+
+class MarketIntelAgent(Agent):
+    """
+    Market Intelligence Agent.
+    Evaluates: Market position, competitive landscape, industry trends.
+    Uses LLM (OpenAI API).
+    """
+
+    def __init__(self):
+        super().__init__("Market Intelligence Agent")
+
+    async def evaluate(self, lead_data: dict) -> dict:
+        """Analyze market position."""
+
+        prompt = f"""Evaluate this prospect's market fit. Score each criterion and sum for total.
+
+PROSPECT DATA:
+- Industry: {lead_data.get('industry', 'Unknown')}
+- Growth Rate: {lead_data.get('growth_rate', 'Unknown')}
+- Market Position: {lead_data.get('market_position', 'Unknown')}
+
+Scoring sheet (max 100 points):
+
+1. INDUSTRY ALIGNMENT (0-40 points):
+   - Exact match (B2B SaaS, Technology, FinTech, Enterprise Software): 40 pts
+   - Related tech industry (Healthcare Tech, EdTech, etc.): 25 pts
+   - Non-tech but uses software heavily: 15 pts
+   - Non-tech/traditional industry: 0 pts
+
+2. GROWTH RATE (0-35 points):
+   - 15%+ YoY growth: 35 pts
+   - 10-14% YoY growth: 25 pts
+   - 5-9% YoY growth: 15 pts
+   - Below 5% or flat/declining: 0 pts
+
+3. MARKET POSITION (0-25 points):
+   - Market leader or dominant player: 25 pts
+   - Strong challenger or fast-growing: 20 pts
+   - Established mid-market player: 15 pts
+   - Small/local/niche player: 5 pts
+
+Provide your evaluation:
+- State points awarded for each criterion with brief justification
+- Calculate total score
+- End with: MARKET_FIT_SCORE: [total]/100"""
+
+        try:
+            response = await call_llm(prompt)
+
+            # Extract score from response
+            score = 50  # Base / threshold scor
+            score_match = re.search(r'MARKET_FIT_SCORE:\s*(\d+)', response)
+            if score_match:
+                score = min(int(score_match.group(1)), 100)
+
+            recommendation = "PROCEED" if score >= 70 else "REJECT"
+
+            return {
+                "agent": self.name,
+                "score": score,
+                "reasoning": response,
+                "recommendation": recommendation
+            }
+        except Exception as e:
+            return {
+                "agent": self.name,
+                "score": 50,
+                "reasoning": f"Error during evaluation: {str(e)}",
+                "recommendation": "REJECT"
+            }
