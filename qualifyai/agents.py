@@ -184,10 +184,13 @@ Scoring sheet (max 100 points):
    - Established mid-market player: 15 pts
    - Small/local/niche player: 5 pts
 
-Provide your evaluation:
-- State points awarded for each criterion with brief justification
-- Calculate total score
-- End with: MARKET_FIT_SCORE: [total]/100"""
+Write a narrative analysis. Start with "After analyzing the market landscape..." Include points for each criterion.
+
+IMPORTANT: You MUST end your response with this exact format on its own line:
+MARKET_FIT_SCORE: [number]/100
+
+Example ending: "MARKET_FIT_SCORE: 85/100"
+"""
 
         try:
             response = await call_llm(prompt)
@@ -330,8 +333,13 @@ SCORING RUBRIC (max 100 points):
    - Significant blockers present: 5 pts
    - Strong opposition identified: 0 pts
 
-Provide brief analysis for each criterion with points awarded.
-End with: CHAMPION_STRENGTH_SCORE: [total]/100"""
+Write a narrative stakeholder mapping. Start with "Stakeholder mapping reveals the following key players:" then describe PRIMARY DECISION MAKER, CHAMPION, any BLOCKERS.
+
+IMPORTANT: You MUST end your response with this exact format on its own line:
+CHAMPION_STRENGTH_SCORE: [number]/100
+
+Example ending: "CHAMPION_STRENGTH_SCORE: 75/100"
+"""
 
         try:
             response = await call_llm(prompt)

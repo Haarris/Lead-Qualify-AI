@@ -1,5 +1,8 @@
 """Testing for Strategy Agent"""
 
+import sys
+sys.path.insert(0, '..')
+
 import asyncio
 from qualifyai.agents import StrategyAgent
 

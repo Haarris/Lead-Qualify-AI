@@ -1,11 +1,17 @@
 """LLM Client for OpenAI API calls."""
 
+import os
 import yaml
 from openai import AsyncOpenAI
 
+# Get absolute path to config (works from any directory)
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.dirname(_THIS_DIR)
+CONFIG_PATH = os.path.join(_PROJECT_ROOT, "cfg", "config.yml")
+
 def load_config():
     """Load configuration from config.yml."""
-    with open("cfg/config.yml", "r") as f:
+    with open(CONFIG_PATH, "r") as f:
         return yaml.safe_load(f)
 
 def get_llm_client():

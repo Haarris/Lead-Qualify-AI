@@ -1,5 +1,8 @@
 """Testing for Market Intelligence Agent"""
 
+import sys
+sys.path.insert(0, '..')
+
 import asyncio
 from qualifyai.agents import MarketIntelAgent
 

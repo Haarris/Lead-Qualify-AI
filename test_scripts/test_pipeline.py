@@ -1,5 +1,8 @@
 """Test full qualification pipeline"""
 
+import sys
+sys.path.insert(0, '..')
+
 import asyncio
 from qualifyai.pipeline import LeadQualifyPipeline
 from qualifyai.stages import Stage1, Stage2, Stage3
