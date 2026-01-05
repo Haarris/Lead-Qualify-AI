@@ -1,7 +1,6 @@
 """Agent implementation"""
 
 import json
-import re
 from .llm_client import call_llm
 
 class Agent:
@@ -45,49 +44,33 @@ Lead Information:
 - Employee Count: {lead_data.get('employee_count', 'Unknown')}
 - Annual Revenue: ${lead_data.get('annual_revenue', 'Unknown')}
 
-Evaluate the fit and provide your response in this exact JSON format:
-{{
-    "score": <0-100>,
-    "reasoning": "<explanation of fit assessment>",
-    "recommendation": "<PROCEED or REJECT>"
-}}
-
 Score guidelines:
 - 90-100: Perfect ICP match
 - 70-89: Good fit with minor gaps
 - 50-69: Moderate fit, some concerns
 - Below 50: Poor fit
 
-Return only valid JSON, no other text."""
+Return valid JSON with exactly these fields:
+- score: number (0-100)
+- reasoning: string (explanation of fit assessment)
+- recommendation: string (PROCEED or REJECT)"""
 
         try:
-            response = await call_llm(prompt)
-
-            # Parse JSON response
-            json_match = re.search(r'\{[^{}]*\}', response, re.DOTALL)
-            if json_match:
-                result = json.loads(json_match.group())
-                return {
-                    "agent": self.name,
-                    "score": result.get("score", 50),
-                    "reasoning": result.get("reasoning", "Analysis completed"),
-                    "recommendation": result.get("recommendation", "PROCEED" if result.get("score", 0) >= 70 else "REJECT")
-                }
+            response = await call_llm(prompt, json_mode=True)
+            result = json.loads(response)
+            return {
+                "agent": self.name,
+                "score": result.get("score", 50),
+                "reasoning": result.get("reasoning", "Analysis completed"),
+                "recommendation": result.get("recommendation", "PROCEED" if result.get("score", 0) >= 70 else "REJECT")
+            }
         except Exception as e:
-            # Fallback on error
             return {
                 "agent": self.name,
                 "score": 50,
                 "reasoning": f"Error during evaluation: {str(e)}",
                 "recommendation": "REJECT"
             }
-
-        return {
-            "agent": self.name,
-            "score": 50,
-            "reasoning": "Could not parse LLM response",
-            "recommendation": "REJECT"
-        }
 
 
 class BudgetAgent(Agent):
@@ -184,29 +167,20 @@ Scoring sheet (max 100 points):
    - Established mid-market player: 15 pts
    - Small/local/niche player: 5 pts
 
-Write a narrative analysis. Start with "After analyzing the market landscape..." Include points for each criterion.
-
-IMPORTANT: You MUST end your response with this exact format on its own line:
-MARKET_FIT_SCORE: [number]/100
-
-Example ending: "MARKET_FIT_SCORE: 85/100"
-"""
+Return valid JSON with exactly these fields:
+- score: number (0-100, sum of all criteria)
+- reasoning: string (narrative analysis starting with "After analyzing the market landscape..." and include points for each criterion)"""
 
         try:
-            response = await call_llm(prompt)
-
-            # Extract score from response
-            score = 50  # Base / threshold scor
-            score_match = re.search(r'MARKET_FIT_SCORE:\s*(\d+)', response)
-            if score_match:
-                score = min(int(score_match.group(1)), 100)
-
+            response = await call_llm(prompt, json_mode=True)
+            result = json.loads(response)
+            score = min(result.get("score", 50), 100)
             recommendation = "PROCEED" if score >= 70 else "REJECT"
 
             return {
                 "agent": self.name,
                 "score": score,
-                "reasoning": response,
+                "reasoning": result.get("reasoning", "Analysis completed"),
                 "recommendation": recommendation
             }
         except Exception as e:
@@ -333,29 +307,20 @@ SCORING RUBRIC (max 100 points):
    - Significant blockers present: 5 pts
    - Strong opposition identified: 0 pts
 
-Write a narrative stakeholder mapping. Start with "Stakeholder mapping reveals the following key players:" then describe PRIMARY DECISION MAKER, CHAMPION, any BLOCKERS.
-
-IMPORTANT: You MUST end your response with this exact format on its own line:
-CHAMPION_STRENGTH_SCORE: [number]/100
-
-Example ending: "CHAMPION_STRENGTH_SCORE: 75/100"
-"""
+Return valid JSON with exactly these fields:
+- score: number (0-100, sum of all criteria)
+- reasoning: string (narrative stakeholder mapping starting with "Stakeholder mapping reveals the following key players:" then describe PRIMARY DECISION MAKER, CHAMPION, any BLOCKERS)"""
 
         try:
-            response = await call_llm(prompt)
-
-            # Extract score from response
-            score = 50
-            score_match = re.search(r'CHAMPION_STRENGTH_SCORE:\s*(\d+)', response)
-            if score_match:
-                score = min(int(score_match.group(1)), 100)
-
+            response = await call_llm(prompt, json_mode=True)
+            result = json.loads(response)
+            score = min(result.get("score", 50), 100)
             recommendation = "PROCEED" if score >= 70 else "REJECT"
 
             return {
                 "agent": self.name,
                 "score": score,
-                "reasoning": response,
+                "reasoning": result.get("reasoning", "Analysis completed"),
                 "recommendation": recommendation
             }
         except Exception as e:
@@ -603,7 +568,7 @@ DEAL CONTEXT:
 - Key Stakeholders:
 {stakeholders_str}
 
-Generate a playbook in this EXACT format:
+Generate a playbook with these sections:
 
 EXECUTIVE SUMMARY
 [2-3 sentences describing the opportunity and recommended approach]
@@ -621,8 +586,6 @@ CONFIDENCE_LEVEL: [High/Medium/Low]
 PHASE 3: NEGOTIATION & CLOSE (Weeks 5-6)
 [Describe closing approach and timeline]
 
-STRATEGY_EFFECTIVENESS_SCORE: [0-100]/100
-
 RISKS: [Key risks that could derail the deal]
 
 RECOMMENDED NEXT STEPS: [1] [action with deadline (weeks / months)], [2] [action with deadline], [3] [action with deadline]
@@ -630,23 +593,22 @@ RECOMMENDED NEXT STEPS: [1] [action with deadline (weeks / months)], [2] [action
 SCORING GUIDE:
 - Clear path to decision maker (35 pts): Do we have access?
 - Addressable blockers (35 pts): Can concerns be overcome?
-- Realistic timeline (30 pts): Is the timeline achievable?"""
+- Realistic timeline (30 pts): Is the timeline achievable?
+
+Return valid JSON with exactly these fields:
+- score: number (0-100, sum based on scoring guide)
+- reasoning: string (full playbook following the format above)"""
 
         try:
-            response = await call_llm(prompt)
-
-            # Extract score from response
-            score = 50
-            score_match = re.search(r'STRATEGY_EFFECTIVENESS_SCORE:\s*(\d+)', response)
-            if score_match:
-                score = min(int(score_match.group(1)), 100)
-
+            response = await call_llm(prompt, json_mode=True)
+            result = json.loads(response)
+            score = min(result.get("score", 50), 100)
             recommendation = "PROCEED" if score >= 70 else "REJECT"
 
             return {
                 "agent": self.name,
                 "score": score,
-                "reasoning": response,
+                "reasoning": result.get("reasoning", "Analysis completed"),
                 "recommendation": recommendation
             }
         except Exception as e:

@@ -19,7 +19,7 @@ def get_llm_client():
     config = load_config()
     return AsyncOpenAI(api_key=config["openai_api_key"])
 
-async def call_llm(prompt: str, system_prompt: str = None) -> str:
+async def call_llm(prompt: str, system_prompt: str = None, json_mode: bool = False) -> str:
     """Make an async call to the LLM and return the response text."""
     client = get_llm_client()
 
@@ -28,11 +28,16 @@ async def call_llm(prompt: str, system_prompt: str = None) -> str:
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": prompt})
 
-    response = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=messages,
-        temperature=0.1,
-        max_tokens=1000
-    )
+    params = {
+        "model": "gpt-4o-mini",
+        "messages": messages,
+        "temperature": 0.1,
+        "max_tokens": 1000
+    }
+
+    if json_mode:
+        params["response_format"] = {"type": "json_object"}
+
+    response = await client.chat.completions.create(**params)
 
     return response.choices[0].message.content
